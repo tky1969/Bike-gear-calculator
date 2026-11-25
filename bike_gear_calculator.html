@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="單車齒比速算" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>單車齒比速算 · Gear &amp; Speed Calculator</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Ccircle cx='32' cy='32' r='16' fill='none' stroke='%23ffffff' stroke-width='5' stroke-dasharray='5 3'/%3E%3Ccircle cx='32' cy='32' r='7' fill='none' stroke='%2310b981' stroke-width='3'/%3E%3Cpath d='M32 32 L50 14' stroke='%2310b981' stroke-width='4.5' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-alt: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --border: #cbd5e1;
+      --primary: #047857;
+      --primary-soft: #d1fae5;
+      --primary-on-soft: #022c22;
+      --secondary: #1e40af;
+      --secondary-soft: #dbeafe;
+      --tertiary: #b45309;
+      --excel-bg: #fff8db;
+      --excel-border: rgba(217, 119, 6, 0.55);
+      --fast-bg: #dcfce7;
+      --fast-text: #15803d;
+      --climb-bg: #eff6ff;
+      --climb-alert: #dc2626;
+      --climb-text: #1d4ed8;
+      --shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Noto Sans TC", sans-serif;
+    }
+
+    html[data-theme="dark"] {
+      --bg: #0b1120;
+      --surface: #131c31;
+      --surface-alt: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --primary: #10b981;
+      --primary-soft: #064e3b;
+      --primary-on-soft: #a7f3d0;
+      --secondary: #60a5fa;
+      --secondary-soft: #1e3a8a;
+      --tertiary: #fbbf24;
+      --excel-bg: #292211;
+      --excel-border: rgba(245, 158, 11, 0.6);
+      --fast-bg: #052e16;
+      --fast-text: #4ade80;
+      --climb-bg: #172554;
+      --climb-alert: #f87171;
+      --climb-text: #93c5fd;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: calc(76px + env(safe-area-inset-bottom));
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: calc(14px + env(safe-area-inset-top)) 16px 24px;
+    }
+
+    header.topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .title-group h1 {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .title-group p {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+    .btn-pill {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 38px;
+    }
+    .btn-pill:hover { border-color: var(--primary); }
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-secondary {
+      background: var(--secondary);
+      color: #ffffff;
+      border-color: var(--secondary);
+    }
+
+    /* Presets */
+    .presets-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      scrollbar-width: thin;
+    }
+    .preset-chip {
+      flex: 0 0 auto;
+      text-align: left;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .preset-chip.active {
+      background: var(--primary-soft);
+      border-color: var(--primary);
+      color: var(--primary-on-soft);
+    }
+    .preset-chip .p-name {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .preset-chip .p-sub {
+      display: block;
+      font-size: 0.72rem;
+      font-family: var(--mono);
+      opacity: 0.82;
+      margin-top: 2px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    .mode-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 14px;
+    }
+    .switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+    .switch {
+      position: relative;
+      width: 46px;
+      height: 26px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-round {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+    .slider-round::before {
+      content: "";
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 2px;
+      top: 2px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: 0.2s;
+    }
+    .switch input:checked + .slider-round {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .switch input:checked + .slider-round::before {
+      transform: translateX(20px);
+    }
+
+    /* Excel Parameter Grid */
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    @media (min-width: 640px) {
+      .param-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    .param-card {
+      background: var(--excel-bg);
+      border: 1.5px solid var(--excel-border);
+      border-radius: 16px;
+      padding: 12px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .param-card:active { transform: scale(0.99); }
+    .param-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .param-arrow { color: var(--tertiary); font-size: 0.9rem; }
+    .param-select {
+      width: 100%;
+      font-family: var(--mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 2px 0;
+      cursor: pointer;
+    }
+    .param-select option {
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+    .param-desc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    .param-custom-btn {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--tertiary);
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(180, 83, 9, 0.12);
+      white-space: nowrap;
+    }
+
+    /* Cadence Control */
+    .cadence-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .cadence-stepper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: var(--surface-alt);
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+    .cadence-val {
+      font-family: var(--mono);
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1rem;
+      min-width: 96px;
+      text-align: center;
+    }
+    .cadence-presets {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .cad-chip {
+      padding: 8px 4px;
+      border-radius: 10px;
+      background: var(--surface-alt);
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .cad-chip.active {
+      background: var(--primary-soft);
+      color: var(--primary-on-soft);
+      font-weight: 700;
+    }
+
+    /* Telemetry KPI Strip */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .kpi-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .kpi-label { font-size: 0.72rem; color: var(--text-muted); }
+    .kpi-value {
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .kpi-sub {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    /* Excel Speed Table */
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 8px;
+    }
+    .matrix-header h2 { margin: 0; font-size: 1.05rem; }
+    .excel-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: block;
+    }
+    .excel-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .excel-table th, .excel-table td {
+      padding: 11px 6px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .excel-table tr:last-child td { border-bottom: none; }
+    .excel-table thead {
+      background: var(--surface-alt);
+      font-style: italic;
+    }
+    .excel-table thead th {
+      font-family: var(--mono);
+      font-size: 0.92rem;
+    }
+    .excel-table .col-gear {
+      width: 28%;
+      font-family: var(--mono);
+      font-style: italic;
+      font-weight: 700;
+    }
+    .excel-table .col-unit {
+      width: 14%;
+      font-size: 0.75rem;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+    .gear-sub {
+      display: block;
+      font-style: normal;
+      font-weight: 500;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .row-fast { background: var(--fast-bg); }
+    .row-fast .speed-cell { color: var(--fast-text); }
+    .row-climb { background: var(--climb-bg); }
+    .row-climb .speed-cell { color: var(--climb-text); }
+    .row-climb .speed-cell.first-col { color: var(--climb-alert); }
+    .speed-cell {
+      font-family: var(--mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+    .matrix-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Target Speed Finder */
+    .slider-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--secondary);
+      margin: 6px 0 10px;
+    }
+    .match-box {
+      background: var(--secondary-soft);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .match-box strong { font-family: var(--mono); font-size: 1.15rem; color: var(--secondary); }
+
+    /* Cassette Bars */
+    .bar-row {
+      display: grid;
+      grid-template-columns: 42px 1fr 56px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+    }
+    .bar-track {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--surface-alt);
+      overflow: hidden;
+    }
+    .bar-fill {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--secondary), var(--primary));
+    }
+    .bar-mid-dot {
+      position: absolute;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--tertiary);
+      transform: translate(-50%, -50%);
+    }
+
+    /* Compare Screen */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 640px) {
+      .compare-grid { grid-template-columns: 1fr 1fr; }
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .badge-a { background: var(--primary-soft); color: var(--primary-on-soft); }
+    .badge-b { background: var(--secondary-soft); color: var(--secondary); }
+    .delta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .delta-box {
+      background: var(--surface-alt);
+      border-radius: 10px;
+      padding: 9px;
+    }
+    .delta-box .d-val {
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin: 2px 0;
+    }
+    .delta-box .d-hint { font-size: 0.72rem; color: var(--primary); }
+
+    /* Bottom Navigation */
+    nav.bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+      z-index: 50;
+    }
+    .nav-btn {
+      flex: 1;
+      max-width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .nav-btn.active {
+      background: var(--primary-soft);
+      color: var(--primary-on-soft);
+    }
+
+    .hidden { display: none !important; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(82px + env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      z-index: 100;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="title-group">
+        <h1>單車齒比速算</h1>
+        <p>HTML 跨平台版 · 支援 iPhone / Android / 電腦瀏覽器</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-pill" id="themeToggleBtn" type="button">🌓 主題</button>
+        <button class="btn-pill" id="resetExcelBtn" type="button">↺ 重設預設</button>
+      </div>
+    </header>
+
+    <!-- TAB 1: CALCULATOR -->
+    <section id="tab-calculator">
+      <div class="presets-scroll" id="presetsContainer"></div>
+
+      <div class="card mode-strip">
+        <label class="switch-label">
+          <span>雙盤 (2x) 設定</span>
+          <span class="switch">
+            <input type="checkbox" id="doubleChainringToggle" />
+            <span class="slider-round"></span>
+          </span>
+        </label>
+        <button class="btn-pill" id="piModeBtn" type="button"></button>
+      </div>
+
+      <div class="param-grid" id="paramGrid"></div>
+
+      <div class="card">
+        <div class="cadence-top">
+          <div>
+            <div style="font-weight:700;font-size:0.95rem;">踏頻設定 (Cadence)</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);" id="cadenceSubLabel"></div>
+          </div>
+          <div class="cadence-stepper">
+            <button class="step-btn" id="cadenceMinusBtn" type="button" aria-label="降低踏頻">−</button>
+            <span class="cadence-val" id="cadenceRangeText"></span>
+            <button class="step-btn" id="cadencePlusBtn" type="button" aria-label="提高踏頻">+</button>
+          </div>
+        </div>
+        <div class="cadence-presets" id="cadencePresets"></div>
+      </div>
+
+      <div class="kpi-strip" id="kpiStrip"></div>
+
+      <div class="card">
+        <div class="matrix-header">
+          <h2>極限齒比時速表</h2>
+          <button class="btn-pill" style="background:var(--primary-soft);color:var(--primary-on-soft);border-color:transparent;" id="gotoCassetteBtn" type="button">展開全段飛輪 →</button>
+        </div>
+        <div class="excel-table" id="excelMatrixTable"></div>
+        <div class="matrix-footer">
+          <span id="formulaLabel"></span>
+          <span id="drivetrainModeLabel"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="slider-row">
+          <span style="font-weight:700;">巡航目標時速試算</span>
+          <strong style="font-family:var(--mono);color:var(--secondary);font-size:1.1rem;" id="targetSpeedLabel">30 km/h</strong>
+        </div>
+        <input type="range" id="targetSpeedSlider" min="12" max="55" step="1" value="30" />
+        <div class="match-box" id="targetMatchBox"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: CASSETTE -->
+    <section id="tab-cassette" class="hidden">
+      <div class="card">
+        <h2 style="margin:0 0 4px;font-size:1.1rem;">飛輪全段齒比與速域</h2>
+        <p style="margin:0 0 12px;font-size:0.84rem;color:var(--text-muted);" id="cassetteSubtitle"></p>
+        <div id="cassetteRingToggleWrap" style="display:flex;gap:8px;margin-bottom:12px;" class="hidden">
+          <button class="btn-pill" style="flex:1;justify-content:center;" id="cassetteOuterBtn" type="button"></button>
+          <button class="btn-pill" style="flex:1;justify-content:center;" id="cassetteInnerBtn" type="button"></button>
+        </div>
+        <div id="cassetteBars"></div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div class="excel-table" style="border:none;border-radius:0;" id="fullCassetteTable"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: COMPARE -->
+    <section id="tab-compare" class="hidden">
+      <div class="card">
+        <div style="font-weight:700;margin-bottom:8px;" id="compareCurrentHeadline"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-pill btn-primary" style="flex:1;justify-content:center;" id="saveABtn" type="button">覆寫為組別 A</button>
+          <button class="btn-pill btn-secondary" style="flex:1;justify-content:center;" id="saveBBtn" type="button">覆寫為組別 B</button>
+        </div>
+      </div>
+
+      <div class="card" id="compareDeltaCard"></div>
+
+      <div class="compare-grid" id="compareCardsGrid"></div>
+    </section>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="calculator" type="button">🧮<span>速算表</span></button>
+    <button class="nav-btn" data-tab="cassette" type="button">📊<span>飛輪全段</span></button>
+    <button class="nav-btn" data-tab="compare" type="button">⇄<span>雙組對比</span></button>
+  </nav>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script>
+    const CHAINRINGS = [
+      { teeth: 30, desc: "登山車爬坡單盤" },
+      { teeth: 32, desc: "MTB 越野單盤" },
+      { teeth: 34, desc: "公路壓縮盤小盤" },
+      { teeth: 36, desc: "半壓縮盤小盤 / 越野" },
+      { teeth: 38, desc: "Gravel / 單盤" },
+      { teeth: 39, desc: "標準盤小盤" },
+      { teeth: 40, desc: "Gravel 進階單盤" },
+      { teeth: 42, desc: "Gravel / 城市單盤" },
+      { teeth: 44, desc: "Gravel 競速單盤" },
+      { teeth: 46, desc: "CX / 全能單盤" },
+      { teeth: 48, desc: "12速公路大盤 (AXS)" },
+      { teeth: 50, desc: "公路壓縮盤大盤 (50/34)" },
+      { teeth: 52, desc: "公路半壓縮盤 (52/36)" },
+      { teeth: 53, desc: "公路標準盤 (53/39)" },
+      { teeth: 54, desc: "計時 / 平路競速大盤" },
+      { teeth: 56, desc: "小徑車競速大盤" },
+    ];
+
+    const SMALL_COGS = [
+      { teeth: 9, desc: "9T 超微齒飛輪" },
+      { teeth: 10, desc: "12速公路/登山微齒" },
+      { teeth: 11, desc: "11/12速標準起步" },
+      { teeth: 12, desc: "青少年 / 平緩起步" },
+      { teeth: 13, desc: "古典 / 城市起步" },
+      { teeth: 14, desc: "高轉速密齒起步" },
+    ];
+
+    const LARGE_COGS = [
+      { teeth: 17, desc: "14吋小折 3速爬坡 (9-17)" },
+      { teeth: 25, desc: "平路競技密齒飛輪" },
+      { teeth: 28, desc: "傳統公路爬坡" },
+      { teeth: 30, desc: "現代公路全能 (11-30)" },
+      { teeth: 32, desc: "耐力公路爬坡 (11-32)" },
+      { teeth: 34, desc: "長坡超壓縮 (11-34)" },
+      { teeth: 36, desc: "全地形耐力 (10-36)" },
+      { teeth: 40, desc: "礫石車 Gravel 單盤" },
+      { teeth: 42, desc: "寬齒比 Gravel 單盤" },
+      { teeth: 44, desc: "XPLR Gravel 大飛輪" },
+      { teeth: 46, desc: "11速登山 / Gravel" },
+      { teeth: 50, desc: "Eagle 12速登山" },
+      { teeth: 51, desc: "Shimano 12速登山" },
+      { teeth: 52, desc: "T-Type 寬域登山" },
+    ];
+
+    const RIMS = [
+      { bsd: 622, desc: "700C / 29吋" },
+      { bsd: 584, desc: "650B / 27.5吋" },
+      { bsd: 559, desc: "26吋登山車" },
+      { bsd: 451, desc: "20吋 451 小徑跑車" },
+      { bsd: 406, desc: "20吋 406 折疊車" },
+      { bsd: 349, desc: "16吋 349 布朗頓" },
+      { bsd: 305, desc: "16吋 305 童車/小折" },
+      { bsd: 254, desc: "14吋 254 折疊車" },
+      { bsd: 630, desc: "27吋經典鋼管車" },
+    ];
+
+    const TIRES = [
+      { inches: 0.906, desc: "23C 傳統公路車" },
+      { inches: 0.984, desc: "25C 競速公路車" },
+      { inches: 1.102, desc: "28C 公路車" },
+      { inches: 1.181, desc: "30C 耐力公路車" },
+      { inches: 1.260, desc: "32C 全天候公路車" },
+      { inches: 1.378, desc: "35C 城市 / 輕度越野" },
+      { inches: 1.496, desc: "38C Gravel 礫石胎" },
+      { inches: 1.575, desc: "40C Gravel 標準胎" },
+      { inches: 1.772, desc: "45C 寬版 Gravel" },
+      { inches: 1.950, desc: "1.95\" 登山車窄胎" },
+      { inches: 2.100, desc: "2.10\" XC 越野登山胎" },
+      { inches: 2.250, desc: "2.25\" 林道登山胎" },
+      { inches: 2.400, desc: "2.40\" 全山地寬胎" },
+      { inches: 1.350, desc: "1.35\" 小徑/折疊光頭胎" },
+      { inches: 1.500, desc: "1.50\" 通勤折疊胎" },
+      { inches: 1.750, desc: "1.75\" 寬版折疊胎" },
+    ];
+
+    const EXCEL_DEFAULT = {
+      chainring: 38,
+      innerChainring: 34,
+      isDoubleChainring: false,
+      smallCog: 10,
+      largeCog: 40,
+      rimBsdMm: 622,
+      tireInches: 1.102,
+      cadenceMin: 80,
+      cadenceStep: 10,
+      useExactPi: false,
+    };
+
+    const PRESETS = [
+      { id: "excel_gravel", name: "Gravel 單盤 (預設)", sub: "38T × 10-40 · 700×28C", cfg: { ...EXCEL_DEFAULT } },
+      { id: "road_compact", name: "公路壓縮盤", sub: "50/34T × 11-30 · 700×28C", cfg: { ...EXCEL_DEFAULT, chainring: 50, innerChainring: 34, isDoubleChainring: true, smallCog: 11, largeCog: 30 } },
+      { id: "road_race", name: "競速半壓縮", sub: "52/36T × 11-34 · 700×28C", cfg: { ...EXCEL_DEFAULT, chainring: 52, innerChainring: 36, isDoubleChainring: true, smallCog: 11, largeCog: 34 } },
+      { id: "gravel_40", name: "礫石越野 1x", sub: "40T × 10-44 · 700×40C", cfg: { ...EXCEL_DEFAULT, chainring: 40, largeCog: 44, tireInches: 1.575, cadenceMin: 75 } },
+      { id: "mtb_eagle", name: "29er 登山車", sub: "32T × 10-51 · 29×2.25\"", cfg: { ...EXCEL_DEFAULT, chainring: 32, innerChainring: 28, largeCog: 51, tireInches: 2.250, cadenceMin: 70 } },
+      { id: "folding_451", name: "20吋 451 小徑", sub: "53/39T × 11-28 · 451×28C", cfg: { ...EXCEL_DEFAULT, chainring: 53, innerChainring: 39, isDoubleChainring: true, smallCog: 11, largeCog: 28, rimBsdMm: 451 } },
+      { id: "folding_14", name: "14吋 254 折疊車", sub: "53T × 9-17 · 14×1.35\"", cfg: { ...EXCEL_DEFAULT, chainring: 53, innerChainring: 39, smallCog: 9, largeCog: 17, rimBsdMm: 254, tireInches: 1.350 } },
+    ];
+
+    const KNOWN_CASSETTES = {
+      "10-40": [10, 11, 12, 13, 15, 17, 19, 21, 24, 28, 34, 40],
+      "10-44": [10, 11, 13, 15, 17, 19, 21, 24, 28, 32, 38, 44],
+      "10-36": [10, 11, 12, 13, 15, 17, 19, 21, 24, 28, 32, 36],
+      "10-50": [10, 12, 14, 16, 18, 21, 24, 28, 32, 36, 42, 50],
+      "10-51": [10, 12, 14, 16, 18, 21, 24, 28, 33, 39, 45, 51],
+      "10-52": [10, 12, 14, 16, 18, 21, 24, 28, 32, 36, 42, 52],
+      "11-28": [11, 12, 13, 14, 15, 16, 17, 19, 21, 23, 25, 28],
+      "11-30": [11, 12, 13, 14, 15, 16, 17, 19, 21, 24, 27, 30],
+      "11-32": [11, 12, 13, 14, 15, 17, 19, 21, 24, 28, 32],
+      "11-34": [11, 12, 13, 14, 15, 17, 19, 21, 24, 27, 30, 34],
+      "11-40": [11, 13, 15, 17, 19, 21, 24, 28, 32, 36, 40],
+      "11-42": [11, 13, 15, 17, 19, 21, 24, 28, 32, 37, 42],
+      "11-46": [11, 13, 15, 17, 19, 21, 24, 28, 32, 37, 46],
+    };
+
+    const STORAGE_KEY = "bike_gear_calc_html_v1";
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            tab: parsed.tab || "calculator",
+            config: { ...EXCEL_DEFAULT, ...(parsed.config || {}) },
+            setupA: { ...EXCEL_DEFAULT, ...(parsed.setupA || {}) },
+            setupB: { ...PRESETS[1].cfg, ...(parsed.setupB || {}) },
+            showInnerCassette: Boolean(parsed.showInnerCassette),
+            targetSpeed: Number(parsed.targetSpeed || 30),
+            theme: parsed.theme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"),
+          };
+        }
+      } catch (_) {}
+      return {
+        tab: "calculator",
+        config: { ...EXCEL_DEFAULT },
+        setupA: { ...EXCEL_DEFAULT },
+        setupB: { ...PRESETS[1].cfg },
+        showInnerCassette: false,
+        targetSpeed: 30,
+        theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+      };
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {}
+    }
+
+    function getCadences(cfg) {
+      return [cfg.cadenceMin, cfg.cadenceMin + cfg.cadenceStep, cfg.cadenceMin + cfg.cadenceStep * 2];
+    }
+
+    function computeMetrics(cfg) {
+      const diameter = cfg.rimBsdMm + 2 * (cfg.tireInches * 25.4);
+      const pi = cfg.useExactPi ? Math.PI : 3.14;
+      const circumference = diameter * pi;
+      const small = Math.max(1, cfg.smallCog);
+      const large = Math.max(small, cfg.largeCog);
+      const inner = cfg.isDoubleChainring ? Math.min(cfg.innerChainring, cfg.chainring) : cfg.chainring;
+      const maxRatio = cfg.chainring / small;
+      const minRatio = inner / large;
+      const rangePercent = Math.round((maxRatio / minRatio) * 100);
+      const cadences = getCadences(cfg);
+      return {
+        diameter,
+        circumference,
+        maxRatio,
+        minRatio,
+        rangePercent,
+        maxSpeed: maxRatio * cadences[2] * 60 * circumference / 1e6,
+        minSpeed: minRatio * cadences[0] * 60 * circumference / 1e6,
+      };
+    }
+
+    function computeRow(ring, cog, cfg, isFastest = false, isClimbing = false) {
+      const m = computeMetrics(cfg);
+      const ratio = ring / cog;
+      const dev = ratio * m.circumference / 1000;
+      const speeds = getCadences(cfg).map((rpm) => ratio * rpm * 60 * m.circumference / 1e6);
+      return { gearLabel: `${ring}×${cog}`, ring, cog, ratio, dev, speeds, isFastest, isClimbing };
+    }
+
+    function generateCogs(small, large) {
+      const minC = Math.max(8, small);
+      const maxC = Math.max(minC, large);
+      if (minC === maxC) return [minC];
+      const known = KNOWN_CASSETTES[`${minC}-${maxC}`];
+      if (known) return known;
+      if (maxC - minC <= 10) {
+        return Array.from({ length: maxC - minC + 1 }, (_, i) => minC + i);
+      }
+      const targetCount = 12;
+      const result = [minC];
+      const ratio = maxC / minC;
+      for (let i = 1; i < targetCount - 1; i++) {
+        const t = i / (targetCount - 1);
+        const raw = Math.round(minC * Math.pow(ratio, t));
+        const next = Math.min(maxC - (targetCount - 1 - i), Math.max(result[result.length - 1] + 1, raw));
+        result.push(next);
+      }
+      result.push(maxC);
+      return [...new Set(result)].sort((a, b) => a - b);
+    }
+
+    function describeRim(bsd) {
+      return RIMS.find((r) => r.bsd === bsd)?.desc || "自訂輪圈 BSD";
+    }
+
+    function describeTire(inches) {
+      return TIRES.find((t) => Math.abs(t.inches - inches) < 0.002)?.desc || `自訂胎寬 (${Math.round(inches * 25.4)} mm)`;
+    }
+
+    function sameConfig(a, b) {
+      return a.chainring === b.chainring &&
+        a.innerChainring === b.innerChainring &&
+        a.isDoubleChainring === b.isDoubleChainring &&
+        a.smallCog === b.smallCog &&
+        a.largeCog === b.largeCog &&
+        a.rimBsdMm === b.rimBsdMm &&
+        Math.abs(a.tireInches - b.tireInches) < 0.002 &&
+        a.cadenceMin === b.cadenceMin &&
+        a.cadenceStep === b.cadenceStep &&
+        a.useExactPi === b.useExactPi;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.add("hidden"), 2200);
+    }
+
+    function render() {
+      document.documentElement.setAttribute("data-theme", state.theme);
+      document.querySelectorAll(".nav-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.tab === state.tab);
+      });
+      ["calculator", "cassette", "compare"].forEach((t) => {
+        document.getElementById(`tab-${t}`).classList.toggle("hidden", state.tab !== t);
+      });
+
+      renderCalculator();
+      renderCassette();
+      renderCompare();
+      saveState();
+    }
+
+    function renderCalculator() {
+      const cfg = state.config;
+      const metrics = computeMetrics(cfg);
+      const cadences = getCadences(cfg);
+
+      // Presets
+      const pWrap = document.getElementById("presetsContainer");
+      pWrap.innerHTML = PRESETS.map((p) => `
+        <button class="preset-chip ${sameConfig(p.cfg, cfg) ? "active" : ""}" data-preset="${p.id}" type="button">
+          <span class="p-name">${p.name}</span>
+          <span class="p-sub">${p.sub}</span>
+        </button>
+      `).join("");
+      pWrap.querySelectorAll(".preset-chip").forEach((btn) => {
+        btn.onclick = () => {
+          const found = PRESETS.find((p) => p.id === btn.dataset.preset);
+          if (found) { state.config = { ...found.cfg }; render(); }
+        };
+      });
+
+      document.getElementById("doubleChainringToggle").checked = cfg.isDoubleChainring;
+      document.getElementById("piModeBtn").textContent = cfg.useExactPi ? "π = 3.1416 (精密)" : "π = 3.14 (標準)";
+
+      // Parameter grid
+      const grid = document.getElementById("paramGrid");
+      const fields = [
+        {
+          key: "chainring",
+          label: "大盤",
+          value: cfg.chainring,
+          options: ensureOption(CHAINRINGS.map((o) => ({ val: o.teeth, text: `${o.teeth} T (${o.desc})` })), cfg.chainring, `${cfg.chainring} T (自訂)`),
+          desc: CHAINRINGS.find((o) => o.teeth === cfg.chainring)?.desc || "自訂大盤齒數",
+          onChange: (v) => {
+            const t = Math.max(20, Math.min(65, parseInt(v, 10)));
+            if (!isNaN(t)) {
+              cfg.chainring = t;
+              if (cfg.innerChainring >= t) cfg.innerChainring = Math.max(20, t - 4);
+              render();
+            }
+          },
+          promptLabel: "輸入自訂大盤齒數 (20–65T)：",
+        },
+        ...(cfg.isDoubleChainring ? [{
+          key: "innerChainring",
+          label: "副大盤 (小盤)",
+          value: cfg.innerChainring,
+          options: ensureOption(
+            CHAINRINGS.filter((o) => o.teeth <= cfg.chainring - 2).map((o) => ({ val: o.teeth, text: `${o.teeth} T (${o.desc})` })),
+            cfg.innerChainring,
+            `${cfg.innerChainring} T (自訂)`
+          ),
+          desc: CHAINRINGS.find((o) => o.teeth === cfg.innerChainring)?.desc || "自訂副大盤",
+          onChange: (v) => {
+            const t = Math.max(20, Math.min(cfg.chainring - 2, parseInt(v, 10)));
+            if (!isNaN(t)) { cfg.innerChainring = t; render(); }
+          },
+          promptLabel: `輸入自訂副大盤齒數 (20–${cfg.chainring - 2}T)：`,
+        }] : []),
+        {
+          key: "smallCog",
+          label: "小飛輪",
+          value: cfg.smallCog,
+          options: ensureOption(SMALL_COGS.map((o) => ({ val: o.teeth, text: `${o.teeth} T (${o.desc})` })), cfg.smallCog, `${cfg.smallCog} T (自訂)`),
+          desc: SMALL_COGS.find((o) => o.teeth === cfg.smallCog)?.desc || "自訂小飛輪",
+          onChange: (v) => {
+            const t = Math.max(8, Math.min(22, parseInt(v, 10)));
+            if (!isNaN(t)) {
+              cfg.smallCog = t;
+              if (cfg.largeCog < t + 2) cfg.largeCog = t + 4;
+              render();
+            }
+          },
+          promptLabel: "輸入自訂小飛輪齒數 (8–22T)：",
+        },
+        {
+          key: "largeCog",
+          label: "大飛輪",
+          value: cfg.largeCog,
+          options: ensureOption(
+            LARGE_COGS.filter((o) => o.teeth >= cfg.smallCog + 2).map((o) => ({ val: o.teeth, text: `${o.teeth} T (${o.desc})` })),
+            cfg.largeCog,
+            `${cfg.largeCog} T (自訂)`
+          ),
+          desc: LARGE_COGS.find((o) => o.teeth === cfg.largeCog)?.desc || "自訂大飛輪",
+          onChange: (v) => {
+            const t = Math.max(cfg.smallCog + 2, Math.min(60, parseInt(v, 10)));
+            if (!isNaN(t)) { cfg.largeCog = t; render(); }
+          },
+          promptLabel: `輸入自訂大飛輪齒數 (${cfg.smallCog + 2}–60T)：`,
+        },
+        {
+          key: "rimBsdMm",
+          label: "輪圈尺寸",
+          value: cfg.rimBsdMm,
+          options: ensureOption(RIMS.map((r) => ({ val: r.bsd, text: `${r.bsd} mm (${r.desc})` })), cfg.rimBsdMm, `${cfg.rimBsdMm} mm (自訂)`),
+          desc: describeRim(cfg.rimBsdMm),
+          onChange: (v) => {
+            const b = Math.max(200, Math.min(700, parseInt(v, 10)));
+            if (!isNaN(b)) { cfg.rimBsdMm = b; render(); }
+          },
+          promptLabel: "輸入輪圈 ETRTO BSD (mm，例如 254 或 622)：",
+        },
+        {
+          key: "tireInches",
+          label: "輪胎尺寸",
+          value: cfg.tireInches.toFixed(3),
+          options: ensureOption(TIRES.map((t) => ({ val: t.inches.toFixed(3), text: `${t.inches.toFixed(3)}" (${t.desc})` })), cfg.tireInches.toFixed(3), `${cfg.tireInches.toFixed(3)}" (自訂)`),
+          desc: describeTire(cfg.tireInches),
+          onChange: (v) => {
+            const num = parseFloat(v);
+            if (!isNaN(num)) {
+              if (num >= 0.6 && num <= 3.5) {
+                cfg.tireInches = num;
+                render();
+              } else if (num >= 18 && num <= 80) {
+                cfg.tireInches = Math.round((num / 25.4) * 1000) / 1000;
+                render();
+              }
+            }
+          },
+          promptLabel: "輸入輪胎英吋 (如 1.102) 或胎寬 mm (如 28)：",
+        },
+      ];
+
+      grid.innerHTML = fields.map((f) => `
+        <div class="param-card">
+          <div class="param-head">
+            <span>${f.label}</span>
+            <span class="param-arrow">▼</span>
+          </div>
+          <select class="param-select" data-field="${f.key}">
+            ${f.options.map((opt) => `<option value="${opt.val}" ${String(opt.val) === String(f.value) ? "selected" : ""}>${opt.text}</option>`).join("")}
+          </select>
+          <div class="param-desc-row">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.desc}</span>
+            <button class="param-custom-btn" data-custom="${f.key}" type="button">自訂</button>
+          </div>
+        </div>
+      `).join("");
+
+      fields.forEach((f) => {
+        grid.querySelector(`select[data-field="${f.key}"]`).onchange = (e) => f.onChange(e.target.value);
+        grid.querySelector(`button[data-custom="${f.key}"]`).onclick = (e) => {
+          e.stopPropagation();
+          const input = window.prompt(f.promptLabel, String(f.value));
+          if (input !== null && input.trim() !== "") f.onChange(input.trim());
+        };
+      });
+
+      // Cadence
+      const rangeLabel = `${cadences[0]}-${cadences[2]} rpm`;
+      document.getElementById("cadenceSubLabel").textContent = `三欄速算基準 (${rangeLabel})`;
+      document.getElementById("cadenceRangeText").textContent = rangeLabel;
+      const cadPresetsEl = document.getElementById("cadencePresets");
+      cadPresetsEl.innerHTML = [60, 70, 80, 90].map((minRpm) => `
+        <button class="cad-chip ${cfg.cadenceMin === minRpm && cfg.cadenceStep === 10 ? "active" : ""}" data-cadmin="${minRpm}" type="button">
+          ${minRpm}-${minRpm + 20}
+        </button>
+      `).join("");
+      cadPresetsEl.querySelectorAll(".cad-chip").forEach((b) => {
+        b.onclick = () => { cfg.cadenceMin = parseInt(b.dataset.cadmin, 10); cfg.cadenceStep = 10; render(); };
+      });
+
+      // KPI Strip
+      document.getElementById("kpiStrip").innerHTML = `
+        <div class="kpi-pill">
+          <div class="kpi-label">齒比範圍</div>
+          <div class="kpi-value">${metrics.rangePercent}%</div>
+          <div class="kpi-sub">${metrics.minRatio.toFixed(2)}–${metrics.maxRatio.toFixed(2)}x</div>
+        </div>
+        <div class="kpi-pill">
+          <div class="kpi-label">輪周長</div>
+          <div class="kpi-value">${Math.round(metrics.circumference)} mm</div>
+          <div class="kpi-sub">直徑 ${Math.round(metrics.diameter)} mm</div>
+        </div>
+        <div class="kpi-pill">
+          <div class="kpi-label">速域跨距</div>
+          <div class="kpi-value">${metrics.minSpeed.toFixed(1)}–${metrics.maxSpeed.toFixed(1)}</div>
+          <div class="kpi-sub">km/h</div>
+        </div>
+      `;
+
+      // Summary Matrix
+      const rows = cfg.isDoubleChainring
+        ? [
+            computeRow(cfg.chainring, cfg.smallCog, cfg, true, false),
+            computeRow(cfg.chainring, cfg.largeCog, cfg, false, false),
+            computeRow(Math.min(cfg.innerChainring, cfg.chainring), cfg.smallCog, cfg, false, false),
+            computeRow(Math.min(cfg.innerChainring, cfg.chainring), cfg.largeCog, cfg, false, true),
+          ]
+        : [
+            computeRow(cfg.chainring, cfg.smallCog, cfg, true, false),
+            computeRow(cfg.chainring, cfg.largeCog, cfg, false, true),
+          ];
+
+      document.getElementById("excelMatrixTable").innerHTML = buildSpeedTableHtml(cadences, rows, true);
+      document.getElementById("formulaLabel").textContent = cfg.useExactPi ? "公式：齒比 × 踏頻 × 60 × 輪徑 × 3.1416" : "公式：齒比 × 踏頻 × 60 × 輪徑 × 3.14";
+      document.getElementById("drivetrainModeLabel").textContent = cfg.isDoubleChainring ? "雙盤 2x 模式" : "單盤 1x 模式";
+
+      // Target Speed Finder
+      const slider = document.getElementById("targetSpeedSlider");
+      slider.value = state.targetSpeed;
+      document.getElementById("targetSpeedLabel").textContent = `${state.targetSpeed} km/h`;
+
+      const cogs = generateCogs(cfg.smallCog, cfg.largeCog);
+      const candidateRings = cfg.isDoubleChainring ? [cfg.chainring, Math.min(cfg.innerChainring, cfg.chainring)] : [cfg.chainring];
+      const allRows = candidateRings.flatMap((r) => cogs.map((c) => computeRow(r, c, cfg)));
+      const midRpm = cadences[1];
+      let best = null;
+      allRows.forEach((row) => {
+        const reqRpm = (state.targetSpeed * 1e6) / (row.ratio * 60 * metrics.circumference);
+        const diff = Math.abs(reqRpm - midRpm);
+        if (!best || diff < best.diff) best = { row, reqRpm, diff };
+      });
+      document.getElementById("targetMatchBox").innerHTML = best
+        ? `<div><div style="font-size:0.75rem;opacity:0.8;">最接近中間踏頻 (${midRpm} rpm) 的齒位</div><div style="font-weight:700;">建議齒比 ${best.row.gearLabel} (${best.row.ratio.toFixed(2)}x)</div></div><strong>${Math.round(best.reqRpm)} rpm</strong>`
+        : "";
+    }
+
+    function renderCassette() {
+      const cfg = state.config;
+      const cadences = getCadences(cfg);
+      const cogs = generateCogs(cfg.smallCog, cfg.largeCog);
+      const useInner = cfg.isDoubleChainring && state.showInnerCassette;
+      const ring = useInner ? Math.min(cfg.innerChainring, cfg.chainring) : cfg.chainring;
+
+      document.getElementById("cassetteSubtitle").textContent =
+        `模擬飛輪 ${cfg.smallCog}–${cfg.largeCog}T (${cogs.length} 速) 在 ${cadences[0]}-${cadences[2]} rpm 下的各檔時速分佈`;
+
+      const toggleWrap = document.getElementById("cassetteRingToggleWrap");
+      toggleWrap.classList.toggle("hidden", !cfg.isDoubleChainring);
+      if (cfg.isDoubleChainring) {
+        const outBtn = document.getElementById("cassetteOuterBtn");
+        const inBtn = document.getElementById("cassetteInnerBtn");
+        outBtn.textContent = `大盤 ${cfg.chainring}T`;
+        inBtn.textContent = `副大盤 ${Math.min(cfg.innerChainring, cfg.chainring)}T`;
+        outBtn.className = `btn-pill ${!useInner ? "btn-primary" : ""}`;
+        inBtn.className = `btn-pill ${useInner ? "btn-primary" : ""}`;
+      }
+
+      const rows = cogs.map((c, idx) =>
+        computeRow(ring, c, cfg, idx === 0 && !useInner, idx === cogs.length - 1 && (useInner || !cfg.isDoubleChainring))
+      );
+
+      const maxChart = Math.max(30, ...rows.map((r) => r.speeds[2])) * 1.1;
+      document.getElementById("cassetteBars").innerHTML = rows.map((r) => {
+        const leftPct = (r.speeds[0] / maxChart) * 100;
+        const widthPct = Math.max(2, ((r.speeds[2] - r.speeds[0]) / maxChart) * 100);
+        const midPct = (r.speeds[1] / maxChart) * 100;
+        return `
+          <div class="bar-row">
+            <span style="color:var(--text-muted);">${r.cog}T</span>
+            <div class="bar-track">
+              <div class="bar-fill" style="left:${leftPct}%;width:${widthPct}%;"></div>
+              <div class="bar-mid-dot" style="left:${midPct}%;"></div>
+            </div>
+            <span style="text-align:right;">${Math.round(r.speeds[0])}–${Math.round(r.speeds[2])}</span>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("fullCassetteTable").innerHTML = buildSpeedTableHtml(cadences, rows, false);
+    }
+
+    function renderCompare() {
+      const formatTitle = (c) => `${c.isDoubleChainring ? `${c.chainring}/${c.innerChainring}T` : `${c.chainring}T`} × ${c.smallCog}-${c.largeCog}T`;
+      document.getElementById("compareCurrentHeadline").textContent = `目前速算表配置：${formatTitle(state.config)}`;
+
+      const mA = computeMetrics(state.setupA);
+      const mB = computeMetrics(state.setupB);
+      const maxAxis = Math.max(mA.maxSpeed, mB.maxSpeed, 50) * 1.08;
+      const diffMax = mB.maxSpeed - mA.maxSpeed;
+      const diffMin = mB.minSpeed - mA.minSpeed;
+      const diffRange = mB.rangePercent - mA.rangePercent;
+
+      const signed = (val, unit) => `${val >= 0 ? "+" : ""}${val.toFixed(1)} ${unit}`;
+
+      document.getElementById("compareDeltaCard").innerHTML = `
+        <h2 style="margin:0 0 12px;font-size:1.05rem;">組別 B 相對於 組別 A 差異</h2>
+        <div class="bar-row">
+          <strong style="color:var(--primary);">A</strong>
+          <div class="bar-track">
+            <div class="bar-fill" style="left:${(mA.minSpeed / maxAxis) * 100}%;width:${Math.max(3, ((mA.maxSpeed - mA.minSpeed) / maxAxis) * 100)}%;background:var(--primary);"></div>
+          </div>
+          <span>${mA.minSpeed.toFixed(1)}–${mA.maxSpeed.toFixed(1)}</span>
+        </div>
+        <div class="bar-row">
+          <strong style="color:var(--secondary);">B</strong>
+          <div class="bar-track">
+            <div class="bar-fill" style="left:${(mB.minSpeed / maxAxis) * 100}%;width:${Math.max(3, ((mB.maxSpeed - mB.minSpeed) / maxAxis) * 100)}%;background:var(--secondary);"></div>
+          </div>
+          <span>${mB.minSpeed.toFixed(1)}–${mB.maxSpeed.toFixed(1)}</span>
+        </div>
+        <div class="delta-grid">
+          <div class="delta-box">
+            <div class="kpi-label">極速變化</div>
+            <div class="d-val">${signed(diffMax, "km/h")}</div>
+            <div class="d-hint">${diffMax >= 0 ? "B 尾速較快" : "A 尾速較快"}</div>
+          </div>
+          <div class="delta-box">
+            <div class="kpi-label">爬坡最低速</div>
+            <div class="d-val">${signed(diffMin, "km/h")}</div>
+            <div class="d-hint">${diffMin <= 0 ? "B 爬坡更輕" : "A 爬坡更輕"}</div>
+          </div>
+          <div class="delta-box">
+            <div class="kpi-label">齒比範圍差</div>
+            <div class="d-val">${diffRange >= 0 ? "+" : ""}${diffRange}%</div>
+            <div class="d-hint">A ${mA.rangePercent}% vs B ${mB.rangePercent}%</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("compareCardsGrid").innerHTML = [
+        { key: "A", badgeClass: "badge-a", cfg: state.setupA, m: mA },
+        { key: "B", badgeClass: "badge-b", cfg: state.setupB, m: mB },
+      ].map((item) => `
+        <div class="card" style="margin-bottom:0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span class="badge ${item.badgeClass}">組別 ${item.key}</span>
+            <button class="btn-pill" data-load-setup="${item.key}" type="button">載入編輯</button>
+          </div>
+          <div style="font-family:var(--mono);font-size:1.15rem;font-weight:700;">${formatTitle(item.cfg)}</div>
+          <div style="font-size:0.84rem;color:var(--text-muted);margin:4px 0 10px;">
+            ${describeRim(item.cfg.rimBsdMm)} · ${describeTire(item.cfg.tireInches)}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.82rem;border-top:1px solid var(--border);padding-top:10px;">
+            <div><div class="kpi-label">最重齒比</div><strong>${item.m.maxRatio.toFixed(2)}x (${item.m.maxSpeed.toFixed(1)} km/h)</strong></div>
+            <div style="text-align:right;"><div class="kpi-label">最輕齒比</div><strong>${item.m.minRatio.toFixed(2)}x (${item.m.minSpeed.toFixed(1)} km/h)</strong></div>
+          </div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll("[data-load-setup]").forEach((btn) => {
+        btn.onclick = () => {
+          const src = btn.dataset.loadSetup === "A" ? state.setupA : state.setupB;
+          state.config = { ...src };
+          state.tab = "calculator";
+          showToast(`已載入組別 ${btn.dataset.loadSetup} 至速算表`);
+          render();
+        };
+      });
+    }
+
+    function buildSpeedTableHtml(cadences, rows, includeUnitCol) {
+      return `
+        <table>
+          <thead>
+            <tr>
+              <th class="col-gear">Cadence / Gear</th>
+              ${cadences.map((rpm) => `<th>${rpm}</th>`).join("")}
+              ${includeUnitCol ? `<th class="col-unit">rpm</th>` : ""}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r) => `
+              <tr class="${r.isFastest ? "row-fast" : r.isClimbing ? "row-climb" : ""}">
+                <td class="col-gear">
+                  ${r.gearLabel}
+                  <span class="gear-sub">${r.ratio.toFixed(2)}x · ${r.dev.toFixed(1)}m</span>
+                </td>
+                ${r.speeds.map((s, i) => `<td class="speed-cell ${i === 0 ? "first-col" : ""}">${s.toFixed(1)}</td>`).join("")}
+                ${includeUnitCol ? `<td class="col-unit">km/h</td>` : ""}
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function ensureOption(list, currentVal, customLabel) {
+      const exists = list.some((item) => String(item.val) === String(currentVal));
+      return exists ? list : [{ val: currentVal, text: customLabel }, ...list];
+    }
+
+    // Event bindings
+    document.querySelectorAll(".nav-btn").forEach((btn) => {
+      btn.onclick = () => { state.tab = btn.dataset.tab; render(); };
+    });
+    document.getElementById("gotoCassetteBtn").onclick = () => { state.tab = "cassette"; render(); };
+    document.getElementById("themeToggleBtn").onclick = () => {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      render();
+    };
+    document.getElementById("resetExcelBtn").onclick = () => {
+      state.config = { ...EXCEL_DEFAULT };
+      showToast("已重設為預設配置");
+      render();
+    };
+    document.getElementById("doubleChainringToggle").onchange = (e) => {
+      state.config.isDoubleChainring = e.target.checked;
+      if (state.config.innerChainring >= state.config.chainring) {
+        state.config.innerChainring = Math.max(22, state.config.chainring - 14);
+      }
+      render();
+    };
+    document.getElementById("piModeBtn").onclick = () => {
+      state.config.useExactPi = !state.config.useExactPi;
+      render();
+    };
+    document.getElementById("cadenceMinusBtn").onclick = () => {
+      state.config.cadenceMin = Math.max(40, state.config.cadenceMin - 5);
+      render();
+    };
+    document.getElementById("cadencePlusBtn").onclick = () => {
+      state.config.cadenceMin = Math.min(120, state.config.cadenceMin + 5);
+      render();
+    };
+    document.getElementById("targetSpeedSlider").oninput = (e) => {
+      state.targetSpeed = Number(e.target.value);
+      renderCalculator();
+      saveState();
+    };
+    document.getElementById("cassetteOuterBtn").onclick = () => { state.showInnerCassette = false; render(); };
+    document.getElementById("cassetteInnerBtn").onclick = () => { state.showInnerCassette = true; render(); };
+    document.getElementById("saveABtn").onclick = () => {
+      state.setupA = { ...state.config };
+      showToast("已將目前配置儲存至「組別 A」");
+      render();
+    };
+    document.getElementById("saveBBtn").onclick = () => {
+      state.setupB = { ...state.config };
+      showToast("已將目前配置儲存至「組別 B」");
+      render();
+    };
+
+    render();
+  </script>
+</body>
+</html>
